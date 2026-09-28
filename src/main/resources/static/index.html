@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteShare App</title>
+    <style>
+        /* Modern Clean Reset */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f3f4f6; color: #1f2937; padding: 40px 20px; }
+
+        /* Main Card Container */
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        /* Typography */
+        h1 { font-size: 28px; font-weight: 700; color: #111827; margin-bottom: 10px; text-align: center; letter-spacing: -0.5px;}
+        .subtitle { text-align: center; color: #6b7280; font-size: 15px; margin-bottom: 35px; }
+        h2 { font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 20px; margin-top: 30px; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px; }
+
+        /* Grid Layout for Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* Modern Inputs */
+        input, select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 15px;
+            color: #374151;
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #6366f1;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Buttons */
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-primary { background-color: #6366f1; color: white; width: 100%; padding: 14px; font-size: 16px; }
+        .btn-primary:hover { background-color: #4f46e5; transform: translateY(-1px); }
+
+        .action-buttons { display: flex; gap: 8px; }
+        .btn-edit { background-color: #f3f4f6; color: #4b5563; padding: 8px 16px; font-size: 13px; }
+        .btn-edit:hover { background-color: #f59e0b; color: white; }
+        .btn-delete { background-color: #fee2e2; color: #ef4444; padding: 8px 16px; font-size: 13px; }
+        .btn-delete:hover { background-color: #ef4444; color: white; }
+
+        /* Clean Table */
+        .table-container { overflow-x: auto; border-radius: 8px; border: 1px solid #f3f4f6; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 16px; border-bottom: 1px solid #f3f4f6; }
+        th { background-color: #f9fafb; font-weight: 600; color: #6b7280; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+        td { color: #1f2937; font-size: 15px; }
+        tr:hover td { background-color: #f9fafb; }
+        tr:last-child td { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>NoteShare App</h1>
+    <div class="subtitle">Secure Academic Note Sharing Platform</div>
+
+    <h2>Upload / Update Note</h2>
+
+    <input type="hidden" id="editNoteId">
+    <input type="hidden" id="originalUploaderId">
+
+    <div class="form-grid">
+        <input type="text" id="title" placeholder="Note Title (e.g. Basics)">
+        <input type="text" id="unit" placeholder="Unit (e.g. Unit 1)">
+        <input type="text" id="fileName" placeholder="File Name (e.g. notes.pdf)">
+        <select id="subjectId"><option value="">Select Subject</option></select>
+        <input type="text" id="studentName" placeholder="Your Name (e.g. adlien g a)">
+        <input type="text" id="rollNo" placeholder="Enter Roll No (e.g. 732924L101)">
+    </div>
+
+    <button id="saveBtn" class="btn-primary" onclick="saveNote()">Upload Note</button>
+
+    <h2>All Notes</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Unit</th>
+                <th>File Name</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="notesTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const baseUrl = 'http://localhost:8080';
+
+    window.onload = function() {
+        loadNotes();
+        loadDropdowns();
+    };
+
+    function loadDropdowns() {
+        fetch(`${baseUrl}/subjects/all`).then(res => res.json()).then(data => {
+            const subjectSelect = document.getElementById('subjectId');
+            data.forEach(sub => subjectSelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`);
+        });
+    }
+
+    function loadNotes() {
+        fetch(`${baseUrl}/notes/all`).then(res => res.json()).then(data => {
+            const tableBody = document.getElementById('notesTableBody');
+            tableBody.innerHTML = '';
+            data.forEach(note => {
+                tableBody.innerHTML += `<tr>
+                    <td>#${note.id}</td>
+                    <td style="font-weight: 500;">${note.title}</td>
+                    <td>${note.unit}</td>
+                    <td><span style="background: #eef2ff; color: #4f46e5; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${note.fileReference}</span></td>
+                    <td class="action-buttons">
+                        <button class="btn-edit" onclick="editNote(${note.id}, '${note.title}', '${note.unit}', '${note.fileReference}', ${note.subject.id}, ${note.uploader.id})">Edit</button>
+                        <button class="btn-delete" onclick="deleteNote(${note.id})">Delete</button>
+                    </td>
+                </tr>`;
+            });
+        });
+    }
+
+    function editNote(id, title, unit, fileName, subjectId, uploaderId) {
+        document.getElementById('editNoteId').value = id;
+        document.getElementById('originalUploaderId').value = uploaderId;
+
+        document.getElementById('title').value = title;
+        document.getElementById('unit').value = unit;
+        document.getElementById('fileName').value = fileName;
+        document.getElementById('subjectId').value = subjectId;
+
+        document.getElementById('studentName').value = "";
+        document.getElementById('rollNo').value = "";
+
+        document.getElementById('saveBtn').innerText = "Update Note";
+        document.getElementById('saveBtn').style.backgroundColor = "#f59e0b"; // Orange hover logic
+    }
+
+    function saveNote() {
+        const studentName = document.getElementById('studentName').value.trim();
+        const rollNo = document.getElementById('rollNo').value.trim();
+
+        if (!studentName || !rollNo) {
+            alert("Please enter both your Name and Roll No to proceed!");
+            return;
+        }
+
+        fetch(`${baseUrl}/students/verify/${rollNo}`)
+            .then(res => {
+                if (res.ok) {
+                    return res.json();
+                } else {
+                    return fetch(`${baseUrl}/students/add`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: studentName, rollNo: rollNo })
+                    }).then(newRes => newRes.json());
+                }
+            })
+            .then(student => {
+                if (student.name.toLowerCase() !== studentName.toLowerCase()) {
+                    alert("Error: The Name and Roll No you entered do not match our records!");
+                    throw new Error("Name mismatch");
+                }
+
+                const editId = document.getElementById('editNoteId').value;
+                const originalUploaderId = document.getElementById('originalUploaderId').value;
+
+                if (editId) {
+                    if (student.id.toString() !== originalUploaderId.toString()) {
+                        alert("Error: Only the original uploader can update this note!");
+                        throw new Error("Unauthorized update attempt");
+                    }
+                }
+
+                const noteData = {
+                    title: document.getElementById('title').value,
+                    unit: document.getElementById('unit').value,
+                    fileReference: document.getElementById('fileName').value,
+                    subject: { id: document.getElementById('subjectId').value },
+                    uploader: { id: student.id }
+                };
+
+                const methodType = editId ? 'PUT' : 'POST';
+                const url = editId ? `${baseUrl}/notes/update/${editId}` : `${baseUrl}/notes/upload`;
+
+                return fetch(url, {
+                    method: methodType,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(noteData)
+                });
+            })
+            .then(response => {
+                if (response && (response.ok || response.status === 201)) {
+                    alert(document.getElementById('editNoteId').value ? "Note updated successfully!" : "Note saved successfully!");
+
+                    document.getElementById('editNoteId').value = "";
+                    document.getElementById('originalUploaderId').value = "";
+                    document.getElementById('title').value = "";
+                    document.getElementById('unit').value = "";
+                    document.getElementById('fileName').value = "";
+                    document.getElementById('subjectId').value = "";
+                    document.getElementById('studentName').value = "";
+                    document.getElementById('rollNo').value = "";
+
+                    document.getElementById('saveBtn').innerText = "Upload Note";
+                    document.getElementById('saveBtn').style.backgroundColor = "#6366f1"; // Reset to Indigo
+
+                    loadNotes();
+                }
+            })
+            .catch(error => {
+                if(error.message !== "Unauthorized update attempt" && error.message !== "Name mismatch") {
+                    console.error(error);
+                    alert("Error: Something went wrong while saving!");
+                }
+            });
+    }
+
+    function deleteNote(noteId) {
+        const rollNo = prompt("To delete this note, please enter your Roll No:");
+        if (rollNo) {
+            fetch(`${baseUrl}/students/verify/${rollNo}`)
+                .then(res => {
+                    if (res.ok) return res.json();
+                    throw new Error("Invalid Roll No");
+                })
+                .then(student => {
+                    fetch(`${baseUrl}/notes/delete/${noteId}/uploader/${student.id}`, { method: 'DELETE' })
+                        .then(response => {
+                            if (response.status === 200) {
+                                alert("Note deleted successfully!");
+                                loadNotes();
+                            } else {
+                                alert("Error: You did not upload this note, so you cannot delete it!");
+                            }
+                        });
+                })
+                .catch(error => alert("Error: Roll No is not registered in our system!"));
+        }
+    }
+</script>
+</body>
+</html>
